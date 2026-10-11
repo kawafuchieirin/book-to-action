@@ -1,0 +1,14 @@
+# Obsidian
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/*
+!.vscode/settings.json
+*.swp
