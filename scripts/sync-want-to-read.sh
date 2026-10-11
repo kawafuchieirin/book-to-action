@@ -36,12 +36,13 @@ map({
   title:  (.title | sub("^📚\\s*"; "") | cell),
   author: (sect("著者") | cell),
   motive: (sect("きっかけ・解決したいこと") | cell),
+  want:   (sect("手に入れたいもの") | cell),
   date:   (.createdAt | split("T")[0]),
   num:    .number
 })
 | sort_by(rank(.prio), .num)
 | .[]
-| [(.prio | .[0:1]), .title, .author, .motive, .date, ("#" + (.num | tostring))]
+| [(.prio | .[0:1]), .title, .author, .motive, .want, .date, ("#" + (.num | tostring))]
 | @tsv
 JQ
 
@@ -49,15 +50,15 @@ rows="$(gh issue list --label want-to-read --state open --limit 200 \
           --json number,title,body,labels,createdAt --jq "$JQ_PROG")"
 
 table="$(printf '%s\n' \
-  '| 優先度 | タイトル | 著者 | きっかけ・解決したいこと | 追加日 | Issue |' \
-  '| --- | --- | --- | --- | --- | --- |')"
+  '| 優先度 | タイトル | 著者 | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |' \
+  '| --- | --- | --- | --- | --- | --- | --- |')"
 
 count=0
 if [ -n "$rows" ]; then
-  while IFS=$'\t' read -r prio title author motive date num; do
+  while IFS=$'\t' read -r prio title author motive want date num; do
     [ -n "$title" ] || continue
     table="${table}
-| ${prio} | ${title} | ${author} | ${motive} | ${date} | ${num} |"
+| ${prio} | ${title} | ${author} | ${motive} | ${want} | ${date} | ${num} |"
     count=$((count + 1))
   done <<EOF
 $rows
@@ -66,7 +67,7 @@ fi
 
 if [ "$count" -eq 0 ]; then
   table="${table}
-| | _オープンな読みたい本Issueはありません_ | | | | |"
+| | _オープンな読みたい本Issueはありません_ | | | | | |"
 fi
 
 # 表は複数行なので awk -v では渡せない（改行を含む値はエラーになる）。一時ファイル経由で挿入する

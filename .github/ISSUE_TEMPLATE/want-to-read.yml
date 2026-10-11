@@ -7,7 +7,9 @@ body:
     attributes:
       value: |
         タイトルはIssueタイトルの `📚 ` のあとに書いてください。
-        **「きっかけ・解決したいこと」だけは必ず埋めてください。** これが読書ノートの「なぜ読むのか」になります。
+
+        **「きっかけ」「手に入れたいもの」「気持ち」の3つが、そのまま読書ノートの「読む前に」に入ります。**
+        どれも1行でいいので、思いついた言葉のまま書いてください。あとで読み返すと効きます。
 
   - type: input
     id: author
@@ -21,10 +23,31 @@ body:
     id: motivation
     attributes:
       label: きっかけ・解決したいこと
-      description: この本で何を解決したいか。1行でいい
+      description: なぜ今この本が気になったか。どんな問題を解決したいか
       placeholder: 何から手をつけるか毎回迷うのをやめたい
     validations:
       required: true
+
+  - type: textarea
+    id: want
+    attributes:
+      label: 手に入れたいもの
+      description: 読み終えたときに何ができるようになっていたいか。できるだけ具体的に
+      placeholder: 仕事を始める前に「今日何を決めるか」を自分で言えるようになりたい
+    validations:
+      required: true
+
+  - type: textarea
+    id: feeling
+    attributes:
+      label: 登録したときの気持ち
+      description: いま感じていることをそのまま。読後に読み返すと、何が変わったかが分かる
+      placeholder: |
+        例）毎日忙しいのに何も進んでいない感じがして焦っている
+        例）あの人が薦めていたのが悔しかった
+        例）純粋に面白そう
+    validations:
+      required: false
 
   - type: dropdown
     id: priority

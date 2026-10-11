@@ -26,6 +26,13 @@ issue_number=""
 title=""
 author=""
 motivation=""
+want=""
+feeling=""
+
+# Issue本文の見出しを1行に畳んで取り出す（複数行の入力もテンプレートの1行に収める）
+issue_line() {
+  issue_section "$1" "$2" | tr '\n' ' ' | sed -e 's/[[:space:]]\{1,\}/ /g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
 
 if [ "$1" = "--issue" ]; then
   [ "$#" -ge 2 ] || usage
@@ -41,7 +48,9 @@ if [ "$1" = "--issue" ]; then
 
   title="$(strip_title_prefix "$issue_title")"
   author="$(issue_section "$issue_body" "著者" | head -1)"
-  motivation="$(issue_section "$issue_body" "きっかけ・解決したいこと" | tr '\n' ' ' | sed -e 's/[[:space:]]*$//')"
+  motivation="$(issue_line "$issue_body" "きっかけ・解決したいこと")"
+  want="$(issue_line "$issue_body" "手に入れたいもの")"
+  feeling="$(issue_line "$issue_body" "登録したときの気持ち")"
   [ -n "$title" ] || die "Issue #$issue_number からタイトルを取得できませんでした"
 else
   title="$1"
@@ -55,7 +64,8 @@ dest="$REPO_ROOT/02_reading/${slug}.md"
 [ -e "$dest" ] && die "すでに同名のノートがあります: ${dest#$REPO_ROOT/}"
 
 render_template "$TEMPLATE_DIR/book-note.md" \
-  "TITLE=$title" "AUTHOR=$author" "DATE=$(today)" "MOTIVATION=$motivation" \
+  "TITLE=$title" "AUTHOR=$author" "DATE=$(today)" \
+  "MOTIVATION=$motivation" "WANT=$want" "FEELING=$feeling" \
   | sed -e 's/[[:space:]]*$//' > "$dest"
 
 if [ -n "$issue_number" ]; then
