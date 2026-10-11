@@ -1,0 +1,47 @@
+name: 📚 読みたい本を登録
+description: 気になった本を1冊1Issueで登録する（スマホからでもOK）
+title: "📚 "
+labels: ["want-to-read"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        タイトルはIssueタイトルの `📚 ` のあとに書いてください。
+        **「きっかけ・解決したいこと」だけは必ず埋めてください。** これが読書ノートの「なぜ読むのか」になります。
+
+  - type: input
+    id: author
+    attributes:
+      label: 著者
+      placeholder: 安宅和人
+    validations:
+      required: false
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: きっかけ・解決したいこと
+      description: この本で何を解決したいか。1行でいい
+      placeholder: 何から手をつけるか毎回迷うのをやめたい
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - 🔥 今すぐ読みたい
+        - 🌱 そのうち読みたい
+        - 🧊 一応メモ
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: memo
+    attributes:
+      label: メモ（任意）
+      placeholder: 誰に薦められたか、どこで見かけたか など
+    validations:
+      required: false

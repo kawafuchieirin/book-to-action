@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# オープンな「読みたい本」Issueから 01_want-to-read/want-to-read.md の表を再生成する
+# 使い方: ./scripts/sync-want-to-read.sh
+#
+# Issueが正（single source of truth）で、このmdは Obsidian / オフラインで読むための一覧。
+set -euo pipefail
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+require_gh
+
+LIST_FILE="$REPO_ROOT/01_want-to-read/want-to-read.md"
+[ -f "$LIST_FILE" ] || die "一覧ファイルが見つかりません: $LIST_FILE"
+grep -q '<!-- BEGIN:issues -->' "$LIST_FILE" \
+  || die "$LIST_FILE に <!-- BEGIN:issues --> マーカーがありません"
+
+# Issueフォームの「### 見出し」直下の段落を1行に畳んで取り出す
+read -r -d '' JQ_PROG <<'JQ' || true
+def clean: if . == "_No response_" then "" else . end;
+def cell: gsub("\\|"; "\\\\|");
+def sect($h):
+  ((.body // "") | gsub("\r"; "") | split("\n")) as $lines
+  | ($lines | index("### " + $h)) as $i
+  | if $i == null then "" else
+      ($lines[$i + 1:]) as $rest
+      | ($rest | map(startswith("### ")) | index(true)) as $j
+      | (if $j == null then $rest else $rest[0:$j] end)
+      | map(select(. != "")) | join(" ") | clean
+    end;
+def prio: (.labels | map(.name) | map(select(test("^(🔥|🌱|🧊)"))) | first) // "❓ 未設定";
+def rank($p): if ($p | startswith("🔥")) then 0
+              elif ($p | startswith("🌱")) then 1
+              elif ($p | startswith("🧊")) then 2
+              else 3 end;
+map({
+  prio:   prio,
+  title:  (.title | sub("^📚\\s*"; "") | cell),
+  author: (sect("著者") | cell),
+  motive: (sect("きっかけ・解決したいこと") | cell),
+  date:   (.createdAt | split("T")[0]),
+  num:    .number
+})
+| sort_by(rank(.prio), .num)
+| .[]
+| [(.prio | .[0:1]), .title, .author, .motive, .date, ("#" + (.num | tostring))]
+| @tsv
+JQ
+
+rows="$(gh issue list --label want-to-read --state open --limit 200 \
+          --json number,title,body,labels,createdAt --jq "$JQ_PROG")"
+
+table="$(printf '%s\n' \
+  '| 優先度 | タイトル | 著者 | きっかけ・解決したいこと | 追加日 | Issue |' \
+  '| --- | --- | --- | --- | --- | --- |')"
+
+count=0
+if [ -n "$rows" ]; then
+  while IFS=$'\t' read -r prio title author motive date num; do
+    [ -n "$title" ] || continue
+    table="${table}
+| ${prio} | ${title} | ${author} | ${motive} | ${date} | ${num} |"
+    count=$((count + 1))
+  done <<EOF
+$rows
+EOF
+fi
+
+if [ "$count" -eq 0 ]; then
+  table="${table}
+| | _オープンな読みたい本Issueはありません_ | | | | |"
+fi
+
+tmp="$(mktemp)"
+awk -v table="$table" '
+  /<!-- BEGIN:issues -->/ { print; print table; skip = 1; next }
+  /<!-- END:issues -->/   { skip = 0 }
+  !skip { print }
+' "$LIST_FILE" > "$tmp" && mv "$tmp" "$LIST_FILE"
+
+printf '%s を更新しました（読みたい本: %d 冊）\n' "${LIST_FILE#$REPO_ROOT/}" "$count"
+cat <<'NEXT'
+
+次にやること:
+  - 読み始める本を決めたら ./scripts/new-book.sh --issue <Issue番号>
+  - 本を追加したいときは GitHub の Issue から「📚 読みたい本を登録」
+NEXT

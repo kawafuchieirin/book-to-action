@@ -78,3 +78,34 @@ move_file() {
     mv "$src" "$dest"
   fi
 }
+
+# --- GitHub Issue 連携 ---------------------------------------------------
+
+require_gh() {
+  command -v gh >/dev/null 2>&1 \
+    || die "GitHub CLI が必要です。インストール: brew install gh"
+  gh auth status >/dev/null 2>&1 \
+    || die "gh の認証が必要です。実行: gh auth login"
+}
+
+# Issueフォーム本文から「### <見出し>」直下の段落を取り出す
+# 使い方: issue_section "$body" "著者"
+issue_section() {
+  local body="$1" heading="$2"
+  printf '%s\n' "$body" | awk -v heading="$heading" '
+    { sub(/\r$/, "") }
+    $0 ~ "^###[[:space:]]+" heading "[[:space:]]*$" { capture = 1; next }
+    capture && /^###[[:space:]]/ { capture = 0 }
+    capture { buf[++n] = $0 }
+    END {
+      start = 1; while (start <= n && buf[start] ~ /^[[:space:]]*$/) start++
+      end = n;   while (end >= start && buf[end] ~ /^[[:space:]]*$/) end--
+      for (i = start; i <= end; i++) print buf[i]
+    }
+  ' | grep -v '^_No response_$' || true
+}
+
+# Issueタイトルの絵文字プレフィックスを外して本のタイトルにする
+strip_title_prefix() {
+  printf '%s' "$1" | sed -e 's/^📚[[:space:]]*//' -e 's/^[[:space:]]*//'
+}
