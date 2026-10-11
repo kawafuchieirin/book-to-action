@@ -37,12 +37,12 @@ map({
   author: (sect("著者") | cell),
   motive: (sect("きっかけ・解決したいこと") | cell),
   want:   (sect("手に入れたいもの") | cell),
-  date:   (.createdAt | split("T")[0]),
+  created: .createdAt,
   num:    .number
 })
 | sort_by(rank(.prio), .num)
 | .[]
-| [(.prio | .[0:1]), .title, .author, .motive, .want, .date, ("#" + (.num | tostring))]
+| [(.prio | .[0:1]), .title, .author, .motive, .want, .created, ("#" + (.num | tostring))]
 | @tsv
 JQ
 
@@ -55,8 +55,9 @@ table="$(printf '%s\n' \
 
 count=0
 if [ -n "$rows" ]; then
-  while IFS=$'\t' read -r prio title author motive want date num; do
+  while IFS=$'\t' read -r prio title author motive want created num; do
     [ -n "$title" ] || continue
+    date="$(to_local_date "$created")"
     table="${table}
 | ${prio} | ${title} | ${author} | ${motive} | ${want} | ${date} | ${num} |"
     count=$((count + 1))

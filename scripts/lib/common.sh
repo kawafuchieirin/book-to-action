@@ -109,3 +109,18 @@ issue_section() {
 strip_title_prefix() {
   printf '%s' "$1" | sed -e 's/^📚[[:space:]]*//' -e 's/^[[:space:]]*//'
 }
+
+# ISO8601のUTCタイムスタンプをローカルの日付(YYYY-MM-DD)に変換する
+# GitHub APIはUTCを返すため、変換しないとJSTの夜に登録した本が前日付になる
+to_local_date() {
+  local ts="$1" epoch
+  # BSD date(macOS): -u で入力をUTCとして解釈 → エポック経由でローカル出力
+  if epoch="$(date -ju -f '%Y-%m-%dT%H:%M:%SZ' "$ts" +%s 2>/dev/null)"; then
+    date -r "$epoch" +%Y-%m-%d
+  # GNU date(Linux/CI): -d はUTC表記を自動でローカルに変換する
+  elif date -d "$ts" +%Y-%m-%d 2>/dev/null; then
+    :
+  else
+    printf '%s\n' "${ts%%T*}"
+  fi
+}
