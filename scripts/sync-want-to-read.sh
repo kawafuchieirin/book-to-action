@@ -69,12 +69,23 @@ if [ "$count" -eq 0 ]; then
 | | _オープンな読みたい本Issueはありません_ | | | | |"
 fi
 
+# 表は複数行なので awk -v では渡せない（改行を含む値はエラーになる）。一時ファイル経由で挿入する
+table_file="$(mktemp)"
 tmp="$(mktemp)"
-awk -v table="$table" '
-  /<!-- BEGIN:issues -->/ { print; print table; skip = 1; next }
-  /<!-- END:issues -->/   { skip = 0 }
+printf '%s\n' "$table" > "$table_file"
+awk -v table_file="$table_file" '
+  /<!-- BEGIN:issues -->/ {
+    print
+    while ((getline line < table_file) > 0) print line
+    close(table_file)
+    skip = 1
+    next
+  }
+  /<!-- END:issues -->/ { skip = 0 }
   !skip { print }
-' "$LIST_FILE" > "$tmp" && mv "$tmp" "$LIST_FILE"
+' "$LIST_FILE" > "$tmp" || { rm -f "$tmp" "$table_file"; die "一覧の更新に失敗しました"; }
+mv "$tmp" "$LIST_FILE"
+rm -f "$table_file"
 
 printf '%s を更新しました（読みたい本: %d 冊）\n' "${LIST_FILE#$REPO_ROOT/}" "$count"
 cat <<'NEXT'

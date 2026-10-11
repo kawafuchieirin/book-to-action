@@ -12,7 +12,7 @@ Obsidian でも VS Code でもそのまま開けます。
 ```
    📚 読みたい           📖 読書中            🗂 読書ノート
 01_want-to-read  →    02_reading     →      03_notes/<年>
-   1行追加するだけ      読みながらメモ         読了して保管
+  Issueで1冊1件登録      読みながらメモ         読了して保管
                                                   │
                           ┌───────────────────────┴───────────────────────┐
                           ↓                                               ↓
@@ -36,7 +36,7 @@ Obsidian でも VS Code でもそのまま開けます。
 
 | フォルダ | 役割 | 中身 |
 | --- | --- | --- |
-| `01_want-to-read/` | 読みたい本をためる | `want-to-read.md`（1ファイルの表） |
+| `01_want-to-read/` | 読みたい本をためる | `want-to-read.md`（Issueから自動生成される一覧） |
 | `02_reading/` | いま読んでいる本 | 読書中のノート（読み終えたら 03 へ移動） |
 | `03_notes/<年>/` | 読み終えた本の書庫 | 年ごとに読書ノートを保管 |
 | `04_actions/` | 行動変容の一元管理 | `action-tracker.md`（実践中 / 定着 / やめた） |
@@ -58,22 +58,40 @@ chmod +x scripts/*.sh   # 必要な場合のみ
 
 Obsidian で使う場合は、このフォルダを vault として開くだけです。
 
-### 1. 気になった本をためる
+### 1. 気になった本をためる（GitHub Issue）
 
-`01_want-to-read/want-to-read.md` に1行追加するだけ。
+**読みたい本は1冊1Issueで登録します。** スマホのGitHubアプリからでも登録できるので、書店や人との会話の場で思い出した瞬間に入れられます。
 
-```markdown
-| 🔥 | イシューからはじめよ | 安宅和人 | 何から手をつけるか毎回迷うのをやめたい | 2026-10-11 |
+→ [Issueを新規作成](../../issues/new?template=want-to-read.yml) → 「📚 読みたい本を登録」を選ぶ
+
+| フォームの項目 | 内容 |
+| --- | --- |
+| タイトル | `📚 ` のあとに本のタイトル |
+| 著者 | 任意 |
+| きっかけ・解決したいこと | **必須。** これが読書ノートの「なぜ読むのか」に自動で入る |
+| 優先度 | 🔥 今すぐ / 🌱 そのうち / 🧊 一応メモ → 選ぶとラベルが自動で付く |
+
+ローカルの一覧を更新したいときは同期します（Obsidianやオフラインで見るため）。
+
+```bash
+./scripts/sync-want-to-read.sh
+# → 01_want-to-read/want-to-read.md の表を、オープンなIssueから再生成
 ```
 
-**「きっかけ・解決したいこと」を必ず書くのがコツ。** これが後で「なぜ読むのか」になります。
+**Issueが正（single source of truth）で、`want-to-read.md` はその写しです。** md側を直接編集しても次の同期で上書きされます。
 
 ### 2. 読み始める
 
 ```bash
+./scripts/new-book.sh --issue 1
+# → Issue #1 からタイトル・著者・きっかけを取り込んでノートを作り、Issueをcloseする
+
 ./scripts/new-book.sh "イシューからはじめよ" "安宅和人"
-# → 02_reading/イシューからはじめよ.md が作られる
+# → Issueを使わず手で作る場合
 ```
+
+Issueから作ると「解決したいこと」が埋まった状態で始められます。
+読みたい本リストから消す作業も、Issueのcloseで同時に終わります。
 
 読む前に「なぜ読むのか」を5分で埋めます。読みながら、ページ番号付きでメモを足していきます。
 
@@ -120,10 +138,27 @@ Obsidian で使う場合は、このフォルダを vault として開くだけ�
 
 | コマンド | やること |
 | --- | --- |
-| `./scripts/new-book.sh "タイトル" "著者"` | テンプレートから読書中ノートを作成 |
+| `./scripts/sync-want-to-read.sh` | オープンなIssueから `want-to-read.md` の表を再生成 |
+| `./scripts/new-book.sh --issue <番号>` | Issueからノートを作成し、そのIssueをclose |
+| `./scripts/new-book.sh "タイトル" "著者"` | テンプレートから読書中ノートを作成（Issueなし） |
 | `./scripts/finish-book.sh <パス>` | `status: done` と `finished` を記入し `03_notes/<年>/` へ移動（git mv 優先）、次の作業を表示 |
 | `./scripts/new-output.sh "タイトル"` | アウトプット用ファイルを作成 |
 | `./scripts/new-review.sh [YYYY-MM]` | 月次振り返りを作成し、その月の読了冊数を表示 |
+
+---
+
+## GitHub側の仕組み
+
+| ファイル | 役割 |
+| --- | --- |
+| `.github/ISSUE_TEMPLATE/want-to-read.yml` | 読みたい本の登録フォーム |
+| `.github/workflows/label-priority.yml` | フォームで選んだ優先度をラベルに反映する |
+
+ラベルは `want-to-read` / `🔥 今すぐ` / `🌱 そのうち` / `🧊 一応メモ` の4つです。
+優先度がラベルになっているので、Issue一覧で `label:"🔥 今すぐ"` で絞り込めます。
+
+Issueを使わずローカルだけで運用したい場合は、`.github/` を削除して
+`new-book.sh "タイトル" "著者"` の形だけ使えば従来どおり動きます。
 
 ---
 

@@ -4,7 +4,7 @@ author: "{{AUTHOR}}"
 status: reading   # reading / done / dropped
 started: {{DATE}}
 finished:
-issue:            # 読みたい本Issueの番号（--issue で作ると自動で入る）
+issue:            # 例: "#1" 読みたい本Issue（--issue で作ると自動で入る）
 rating:           # ★1〜5（読み終えたら記入）
 tags: []
 ---

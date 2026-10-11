@@ -59,7 +59,8 @@ render_template "$TEMPLATE_DIR/book-note.md" \
   | sed -e 's/[[:space:]]*$//' > "$dest"
 
 if [ -n "$issue_number" ]; then
-  update_frontmatter "$dest" "issue" "#$issue_number"
+  # YAMLでは # 以降がコメント扱いになるためクォートする
+  update_frontmatter "$dest" "issue" "\"#$issue_number\""
   gh issue close "$issue_number" \
     --comment "読み始めました。読書ノート: \`${dest#$REPO_ROOT/}\`" >/dev/null
   printf 'Issue #%s をcloseしました\n' "$issue_number"
