@@ -124,3 +124,17 @@ to_local_date() {
     printf '%s\n' "${ts%%T*}"
   fi
 }
+
+# 入力テキストからURLを1つ取り出す
+# スマホからリンクを貼ると [ラベル](URL) のマークダウン形式になることがあるため、
+# 素のURLだけでなくマークダウンリンクからも取り出せるようにする
+# （同じ判定を sync-want-to-read.sh の jq 側にも持たせている）
+extract_url() {
+  local text="$1" url
+  # マークダウンリンクの括弧内を優先する（正規化済みURLが入っていることが多い）
+  url="$(printf '%s' "$text" \
+    | grep -oE '\]\(https?://[^)[:space:]]+\)' \
+    | head -1 | sed -e 's/^](//' -e 's/)$//')"
+  [ -n "$url" ] || url="$(printf '%s' "$text" | grep -oE 'https?://[^[:space:])]+' | head -1)"
+  printf '%s' "$url"
+}

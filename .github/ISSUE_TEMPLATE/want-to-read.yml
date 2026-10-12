@@ -84,7 +84,7 @@ body:
         - 🔥 今すぐ読みたい
         - 🌱 そのうち読みたい
         - 🧊 一応メモ
-      default: 1
+      default: 0
     validations:
       required: true
 

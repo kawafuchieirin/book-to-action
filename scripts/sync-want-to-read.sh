@@ -27,6 +27,11 @@ def sect($h):
       | map(select(. != "")) | join(" ") | clean
     end;
 def prio: (.labels | map(.name) | map(select(test("^(🔥|🌱|🧊)"))) | first) // "❓ 未設定";
+# スマホから貼ると [ラベル](URL) のマークダウン形式になるため、括弧内のURLを優先して取り出す
+def extract_url:
+  ([scan("\\]\\((https?://[^)\\s]+)\\)")] | map(.[0]) | first)
+  // ([scan("https?://[^\\s)\\]]+")] | first)
+  // "";
 def rank($p): if ($p | startswith("🔥")) then 0
               elif ($p | startswith("🌱")) then 1
               elif ($p | startswith("🧊")) then 2
@@ -39,7 +44,7 @@ map({
            | if ($g | startswith("✏️")) and ($other != "") then $other else $g end),
   motive: (sect("きっかけ・解決したいこと") | cell),
   want:   (sect("手に入れたいもの") | cell),
-  url:    (sect("購入リンク") | cell),
+  url:    (sect("購入リンク") | extract_url | cell),
   created: .createdAt,
   num:    .number
 })

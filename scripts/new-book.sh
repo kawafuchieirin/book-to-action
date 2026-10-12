@@ -59,7 +59,7 @@ if [ "$1" = "--issue" ]; then
   motivation="$(issue_line "$issue_body" "きっかけ・解決したいこと")"
   want="$(issue_line "$issue_body" "手に入れたいもの")"
   feeling="$(issue_line "$issue_body" "登録したときの気持ち")"
-  book_url="$(issue_line "$issue_body" "購入リンク")"
+  book_url="$(extract_url "$(issue_line "$issue_body" "購入リンク")")"
   [ -n "$title" ] || die "Issue #$issue_number からタイトルを取得できませんでした"
 else
   title="$1"
