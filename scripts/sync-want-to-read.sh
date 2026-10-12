@@ -37,9 +37,11 @@ map({
   author: (sect("著者") | cell),
   motive: (sect("きっかけ・解決したいこと") | cell),
   want:   (sect("手に入れたいもの") | cell),
+  url:    (sect("購入リンク") | cell),
   created: .createdAt,
   num:    .number
 })
+| map(.title = (if (.url | test("^https?://")) then "[" + .title + "](" + .url + ")" else .title end))
 | sort_by(rank(.prio), .num)
 | .[]
 | [(.prio | .[0:1]), .title, .author, .motive, .want, .created, ("#" + (.num | tostring))]

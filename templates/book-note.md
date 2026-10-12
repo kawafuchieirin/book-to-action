@@ -5,6 +5,7 @@ status: reading   # reading / done / dropped
 started: {{DATE}}
 finished:
 issue:            # 例: "#1" 読みたい本Issue（--issue で作ると自動で入る）
+url:              # 購入リンク（アウトプットで本を紹介するときに使う）
 rating:           # ★1〜5（読み終えたら記入）
 tags: []
 ---

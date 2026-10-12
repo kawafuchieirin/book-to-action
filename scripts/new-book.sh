@@ -28,6 +28,7 @@ author=""
 motivation=""
 want=""
 feeling=""
+book_url=""
 
 # Issue本文の見出しを1行に畳んで取り出す（複数行の入力もテンプレートの1行に収める）
 issue_line() {
@@ -51,6 +52,7 @@ if [ "$1" = "--issue" ]; then
   motivation="$(issue_line "$issue_body" "きっかけ・解決したいこと")"
   want="$(issue_line "$issue_body" "手に入れたいもの")"
   feeling="$(issue_line "$issue_body" "登録したときの気持ち")"
+  book_url="$(issue_line "$issue_body" "購入リンク")"
   [ -n "$title" ] || die "Issue #$issue_number からタイトルを取得できませんでした"
 else
   title="$1"
@@ -69,8 +71,11 @@ render_template "$TEMPLATE_DIR/book-note.md" \
   | sed -e 's/[[:space:]]*$//' > "$dest"
 
 if [ -n "$issue_number" ]; then
-  # YAMLでは # 以降がコメント扱いになるためクォートする
+  # YAMLでは # 以降がコメント扱いになるためクォートする（URLの #fragment も同様）
   update_frontmatter "$dest" "issue" "\"#$issue_number\""
+  case "$book_url" in
+    http://*|https://*) update_frontmatter "$dest" "url" "\"$book_url\"" ;;
+  esac
   gh issue close "$issue_number" \
     --comment "読み始めました。読書ノート: \`${dest#$REPO_ROOT/}\`" >/dev/null
   printf 'Issue #%s をcloseしました\n' "$issue_number"

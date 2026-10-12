@@ -19,6 +19,15 @@ body:
     validations:
       required: false
 
+  - type: input
+    id: url
+    attributes:
+      label: 購入リンク
+      description: Amazon・楽天・出版社ページなど。あとで買うときに探し直さずに済む
+      placeholder: https://www.amazon.co.jp/dp/...
+    validations:
+      required: false
+
   - type: textarea
     id: motivation
     attributes:
