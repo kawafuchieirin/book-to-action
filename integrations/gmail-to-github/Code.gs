@@ -49,12 +49,30 @@ function github_(path, options) {
   return body ? JSON.parse(body) : null;
 }
 
-/** ASINを含むIssueを探す（closeされたものも含め、最近のものを優先） */
-function findIssueByAsin_(asin) {
-  const query = encodeURIComponent(`repo:${config_('REPO')} ${asin} in:body`);
+function searchIssues_(terms) {
+  const query = encodeURIComponent(`repo:${config_('REPO')} ${terms}`);
   const result = github_(`/search/issues?q=${query}&sort=created&order=desc&per_page=5`);
-  const items = (result && result.items) || [];
-  return items.filter(item => !item.pull_request)[0] || null;
+  return ((result && result.items) || []).filter(item => !item.pull_request);
+}
+
+/**
+ * 購入した本のIssueを探す。ASINが取れればそれが確実。
+ * 古い形式のメールにはASINが無いので、タイトルで探すところまでフォールバックする。
+ */
+function findIssue_(asin, title) {
+  if (asin) {
+    const byAsin = searchIssues_(`${asin} in:body`);
+    if (byAsin.length) return byAsin[0];
+  }
+  if (title) {
+    // 記号で検索が外れることがあるので、長めの語だけを使う
+    const words = title.split(/[\s　・:：「」『』（）()\[\]―ー-]+/).filter(w => w.length >= 3).slice(0, 3);
+    if (words.length) {
+      const byTitle = searchIssues_(`${words.map(w => `"${w}"`).join(' ')} in:title`);
+      if (byTitle.length) return byTitle[0];
+    }
+  }
+  return null;
 }
 
 function setPurchased_(issue) {
@@ -75,16 +93,20 @@ function setPurchased_(issue) {
 }
 
 function createIssue_(title, asin, orderedOn) {
+  // 古い形式のメールにはASINが無いので、その場合は検索リンクを入れておく
+  const link = asin
+    ? `https://www.amazon.co.jp/dp/${asin}`
+    : `https://www.amazon.co.jp/s?k=${encodeURIComponent(title)}&i=digital-text`;
   const body = [
     '### ジャンル', '', '✏️ その他', '',
     '### ジャンル（その他を選んだ場合）', '', '_No response_', '',
     '### いまの状態', '', STATUS_PURCHASED, '',
-    '### 購入リンク', '', `https://www.amazon.co.jp/dp/${asin}`, '',
+    '### 購入リンク', '', link, '',
     '### きっかけ・解決したいこと', '', '（購入通知メールから自動作成。あとで埋める）', '',
     '### 手に入れたいもの', '', '（購入通知メールから自動作成。あとで埋める）', '',
     '### 登録したときの気持ち', '', '_No response_', '',
     '### 優先度', '', '🔥 今すぐ読みたい', '',
-    '### メモ（任意）', '', `Kindleで購入（${orderedOn}）`,
+    '### メモ（任意）', '', `Kindleで購入（${orderedOn}）${asin ? '' : '※購入通知メールにASINがなかったため検索リンク'}`,
   ].join('\n');
 
   return github_(`/repos/${config_('REPO')}/issues`, {
@@ -105,15 +127,50 @@ function comment_(issueNumber, text) {
 }
 
 // ---- メールの解析 -----------------------------------------------------
-/** 件名「Amazon.co.jpでのご注文: タイトル」からタイトルを取り出す */
-function titleFromSubject_(subject) {
-  const m = subject.match(/ご注文[:：]\s*(.+)$/);
-  return (m ? m[1] : subject).trim();
+/**
+ * 本のタイトルを取り出す。
+ *
+ * Amazonは注文確認メールの形式を何度も変えており、実際に次の3種類が存在する。
+ *   2026年〜: 件名「Amazon.co.jpでのご注文: タイトル」／本文は商品リンクの次行がタイトル
+ *   2025年頃: 件名「タイトルからなる注文Amazon.co.jp。」
+ *   2024年頃: 件名「Amazon.co.jpでのご注文D01-...（1点）」＝タイトルなし
+ *             本文の「Kindle版」の直前行がタイトル。商品リンク（ASIN）も入っていない
+ * 件名より本文のほうが形式変更に強いので、本文を先に見る。
+ */
+function titleFromMessage_(subject, body) {
+  const lines = (body || '').split('\n').map(line => line.trim());
+
+  // 本文: 商品ページリンクの直後にある最初の非空行
+  const linkAt = lines.findIndex(line => /\/dp\/[A-Z0-9]{10}/.test(line));
+  if (linkAt !== -1) {
+    const title = lines.slice(linkAt + 1).find(line => line && line.indexOf('販売') !== 0);
+    if (title) return title;
+  }
+
+  // 本文: 「Kindle版」の直前にある最初の非空行
+  const kindleAt = lines.findIndex(line => line === 'Kindle版' || line === 'Kindle 版');
+  if (kindleAt > 0) {
+    for (let i = kindleAt - 1; i >= 0; i--) {
+      if (lines[i] && lines[i].indexOf('.....') === -1) return lines[i];
+    }
+  }
+
+  // 件名のパターンを順に試す
+  const patterns = [
+    /ご注文[:：]\s*(.+)$/,                    // 2026年形式
+    /^(.+?)からなる注文Amazon\.co\.jp/,       // 2025年形式
+    /予約注文「(.+?)」/,                       // 予約注文
+  ];
+  for (const pattern of patterns) {
+    const m = (subject || '').match(pattern);
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  return (subject || '').trim();
 }
 
-/** 本文の商品ページURL（/dp/ASIN）からASINを取り出す */
+/** 本文の商品ページURL（/dp/ASIN）からASINを取り出す。古い形式には入っていない */
 function asinFromBody_(body) {
-  const m = body.match(/\/dp\/([A-Z0-9]{10})/);
+  const m = (body || '').match(/\/dp\/([A-Z0-9]{10})/);
   return m ? m[1] : '';
 }
 
@@ -140,15 +197,16 @@ function syncKindlePurchases() {
       const subject = message.getSubject() || '';
       if (subject.indexOf('ご注文') === -1) return;
 
-      const title = titleFromSubject_(subject);
-      const asin = asinFromBody_(message.getPlainBody() || message.getBody() || '');
-      if (!asin) {
-        log.push(`ASINが取れなかったので飛ばした: ${title}`);
+      const body = message.getPlainBody() || message.getBody() || '';
+      const title = titleFromMessage_(subject, body);
+      const asin = asinFromBody_(body);
+      if (!title) {
+        log.push('タイトルが取れなかったので飛ばした');
         return;
       }
 
       const orderedOn = Utilities.formatDate(message.getDate(), 'Asia/Tokyo', 'yyyy-MM-dd');
-      const issue = findIssueByAsin_(asin);
+      const issue = findIssue_(asin, title);
 
       if (issue) {
         const current = (issue.labels || []).map(l => l.name);
@@ -185,6 +243,7 @@ function checkSetup() {
   console.log(`購入通知メール: ${threads.length} 件見つかりました`);
   threads.forEach(t => {
     const m = t.getMessages()[0];
-    console.log(`  ${titleFromSubject_(m.getSubject())} / ASIN=${asinFromBody_(m.getPlainBody()) || '(取得失敗)'}`);
+    const b = m.getPlainBody() || '';
+    console.log(`  ${titleFromMessage_(m.getSubject(), b)} / ASIN=${asinFromBody_(b) || '(なし→タイトルで突き合わせ)'}`);
   });
 }
