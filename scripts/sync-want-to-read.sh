@@ -34,7 +34,9 @@ def rank($p): if ($p | startswith("🔥")) then 0
 map({
   prio:   prio,
   title:  (.title | sub("^📚\\s*"; "") | cell),
-  author: (sect("著者") | cell),
+  genre:  ((sect("ジャンル") | cell) as $g
+           | (sect("ジャンル（その他を選んだ場合）") | cell) as $other
+           | if ($g | startswith("✏️")) and ($other != "") then $other else $g end),
   motive: (sect("きっかけ・解決したいこと") | cell),
   want:   (sect("手に入れたいもの") | cell),
   url:    (sect("購入リンク") | cell),
@@ -44,7 +46,7 @@ map({
 | map(.title = (if (.url | test("^https?://")) then "[" + .title + "](" + .url + ")" else .title end))
 | sort_by(rank(.prio), .num)
 | .[]
-| [(.prio | .[0:1]), .title, .author, .motive, .want, .created, ("#" + (.num | tostring))]
+| [(.prio | .[0:1]), .title, .genre, .motive, .want, .created, ("#" + (.num | tostring))]
 | join("\u001f")
 JQ
 
@@ -52,17 +54,17 @@ rows="$(gh issue list --label want-to-read --state open --limit 200 \
           --json number,title,body,labels,createdAt --jq "$JQ_PROG")"
 
 table="$(printf '%s\n' \
-  '| 優先度 | タイトル | 著者 | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |' \
+  '| 優先度 | タイトル | ジャンル | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |' \
   '| --- | --- | --- | --- | --- | --- | --- |')"
 
 count=0
 if [ -n "$rows" ]; then
   # 区切りは US(0x1f)。タブは空白文字扱いで空フィールドが詰められてしまうため使わない
-  while IFS=$'\037' read -r prio title author motive want created num; do
+  while IFS=$'\037' read -r prio title genre motive want created num; do
     [ -n "$title" ] || continue
     date="$(to_local_date "$created")"
     table="${table}
-| ${prio} | ${title} | ${author} | ${motive} | ${want} | ${date} | ${num} |"
+| ${prio} | ${title} | ${genre} | ${motive} | ${want} | ${date} | ${num} |"
     count=$((count + 1))
   done <<EOF
 $rows

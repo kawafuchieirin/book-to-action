@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 読み始める本のノートを 02_reading/ に作成する
 # 使い方:
-#   ./scripts/new-book.sh "タイトル" "著者"      手で指定する
+#   ./scripts/new-book.sh "タイトル" "ジャンル"  手で指定する
 #   ./scripts/new-book.sh --issue <Issue番号>     読みたい本Issueから作る（Issueはcloseされる）
 set -euo pipefail
 
@@ -10,11 +10,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 usage() {
   cat >&2 <<'USAGE'
 使い方:
-  ./scripts/new-book.sh "タイトル" "著者"
+  ./scripts/new-book.sh "タイトル" "ジャンル"
   ./scripts/new-book.sh --issue <Issue番号>
 
 例:
-  ./scripts/new-book.sh "イシューからはじめよ" "安宅和人"
+  ./scripts/new-book.sh "イシューからはじめよ" "🧠 思考法・問題解決"
   ./scripts/new-book.sh --issue 1
 USAGE
   exit 1
@@ -24,7 +24,7 @@ USAGE
 
 issue_number=""
 title=""
-author=""
+genre=""
 motivation=""
 want=""
 feeling=""
@@ -48,7 +48,14 @@ if [ "$1" = "--issue" ]; then
   issue_body="$(gh issue view "$issue_number" --json body --jq .body)"
 
   title="$(strip_title_prefix "$issue_title")"
-  author="$(issue_section "$issue_body" "著者" | head -1)"
+  genre="$(issue_line "$issue_body" "ジャンル")"
+  # 「✏️ その他」を選んだ場合は自由入力欄を優先する
+  case "$genre" in
+    ✏️*)
+      genre_other="$(issue_line "$issue_body" "ジャンル（その他を選んだ場合）")"
+      [ -n "$genre_other" ] && genre="$genre_other"
+      ;;
+  esac
   motivation="$(issue_line "$issue_body" "きっかけ・解決したいこと")"
   want="$(issue_line "$issue_body" "手に入れたいもの")"
   feeling="$(issue_line "$issue_body" "登録したときの気持ち")"
@@ -56,7 +63,7 @@ if [ "$1" = "--issue" ]; then
   [ -n "$title" ] || die "Issue #$issue_number からタイトルを取得できませんでした"
 else
   title="$1"
-  author="${2:-}"
+  genre="${2:-}"
 fi
 
 slug="$(slugify "$title")"
@@ -66,7 +73,7 @@ dest="$REPO_ROOT/02_reading/${slug}.md"
 [ -e "$dest" ] && die "すでに同名のノートがあります: ${dest#$REPO_ROOT/}"
 
 render_template "$TEMPLATE_DIR/book-note.md" \
-  "TITLE=$title" "AUTHOR=$author" "DATE=$(today)" \
+  "TITLE=$title" "GENRE=$genre" "DATE=$(today)" \
   "MOTIVATION=$motivation" "WANT=$want" "FEELING=$feeling" \
   | sed -e 's/[[:space:]]*$//' > "$dest"
 

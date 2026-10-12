@@ -11,11 +11,29 @@ body:
         **「きっかけ」「手に入れたいもの」「気持ち」の3つが、そのまま読書ノートの「読む前に」に入ります。**
         どれも1行でいいので、思いついた言葉のまま書いてください。あとで読み返すと効きます。
 
-  - type: input
-    id: author
+  - type: dropdown
+    id: genre
     attributes:
-      label: 著者
-      placeholder: 安宅和人
+      label: ジャンル
+      description: 当てはまるものがなければ「✏️ その他」を選び、次の欄に書いてください
+      options:
+        - 💻 技術・エンジニアリング
+        - ☁️ インフラ・クラウド
+        - 📊 ビジネス・マネジメント
+        - 🧠 思考法・問題解決
+        - 🎨 デザイン・UX
+        - 🔬 教養・サイエンス
+        - 📕 小説・エッセイ
+        - ✏️ その他
+    validations:
+      required: true
+
+  - type: input
+    id: genre_other
+    attributes:
+      label: ジャンル（その他を選んだ場合）
+      description: 上で「✏️ その他」を選んだときだけ記入。こちらが一覧に表示されます
+      placeholder: 料理 / 歴史 / 語学 など
     validations:
       required: false
 

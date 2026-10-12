@@ -1,6 +1,6 @@
 ---
 title: "{{TITLE}}"
-author: "{{AUTHOR}}"
+genre: "{{GENRE}}"
 status: reading   # reading / done / dropped
 started: {{DATE}}
 finished:

@@ -89,7 +89,7 @@ require_gh() {
 }
 
 # Issueフォーム本文から「### <見出し>」直下の段落を取り出す
-# 使い方: issue_section "$body" "著者"
+# 使い方: issue_section "$body" "ジャンル"
 issue_section() {
   local body="$1" heading="$2"
   printf '%s\n' "$body" | awk -v heading="$heading" '

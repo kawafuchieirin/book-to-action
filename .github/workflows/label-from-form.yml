@@ -1,0 +1,55 @@
+name: フォームの選択をラベルに反映する
+
+# 読みたい本Issueのフォームで選んだ優先度とジャンルを、そのままラベルにする。
+# ラベルになっていればIssue一覧で絞り込めるし、sync-want-to-read.sh の表と揃う。
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    if: contains(github.event.issue.labels.*.name, 'want-to-read')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            // 見出しごとに、排他的に付けたいラベルの一覧を持つ
+            const GROUPS = [
+              { heading: '優先度', labels: ['🔥 今すぐ', '🌱 そのうち', '🧊 一応メモ'] },
+              { heading: 'ジャンル', labels: [
+                '💻 技術・エンジニアリング', '☁️ インフラ・クラウド', '📊 ビジネス・マネジメント',
+                '🧠 思考法・問題解決', '🎨 デザイン・UX', '🔬 教養・サイエンス',
+                '📕 小説・エッセイ', '✏️ その他',
+              ] },
+            ];
+
+            const body = context.payload.issue.body || '';
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            const current = context.payload.issue.labels.map(l => l.name);
+
+            // Issueフォームは「### <見出し>」の次の段落に選択値を書き出す
+            const selectedUnder = heading => {
+              const section = body.split(new RegExp(`^###\\\\s+${heading}\\\\s*$`, 'm'))[1] || '';
+              return section.split('\n').map(l => l.trim()).find(l => l && l !== '_No response_');
+            };
+
+            for (const { heading, labels } of GROUPS) {
+              const selected = selectedUnder(heading);
+              // 絵文字は UTF-16 で2単位。先頭の絵文字だけで照合し、選択肢の文言差を許容する
+              const wanted = labels.find(label => selected && selected.startsWith(label.slice(0, 2)));
+              if (!wanted) {
+                core.info(`${heading} を読み取れませんでした: ${JSON.stringify(selected)}`);
+                continue;
+              }
+              for (const stale of labels.filter(l => l !== wanted && current.includes(l))) {
+                await github.rest.issues.removeLabel({ ...issue, name: stale });
+              }
+              if (!current.includes(wanted)) {
+                await github.rest.issues.addLabels({ ...issue, labels: [wanted] });
+              }
+            }
