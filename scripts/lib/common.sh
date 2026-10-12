@@ -61,8 +61,14 @@ read_frontmatter() {
     in_fm && $0 == "---" { exit }
     in_fm && index($0, key ":") == 1 {
       sub(/^[^:]*:[[:space:]]*/, "")
-      sub(/[[:space:]]*#.*$/, "")
-      gsub(/^"|"$/, "")
+      if (/^"/) {
+        # クォート付きの値。issue: "#3" のように # を含んでもコメントとして削らない
+        sub(/^"/, "")
+        sub(/".*$/, "")
+      } else {
+        sub(/[[:space:]]*#.*$/, "")
+        sub(/[[:space:]]+$/, "")
+      }
       print; exit
     }
   ' "$file"

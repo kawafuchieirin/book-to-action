@@ -51,7 +51,7 @@ if [ -n "$note" ]; then
 
 ---
 
-## やめた理由（$dropped）
+## やめた理由（${dropped}）
 
 $reason
 EOF
@@ -69,7 +69,7 @@ fi
 if [ -n "$issue_number" ]; then
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     set_status_label "$issue_number" "🛑 辞めた" || true
-    gh issue close "$issue_number" --comment "読むのをやめました（$dropped）
+    gh issue close "$issue_number" --comment "読むのをやめました（${dropped}）
 
 **理由**: $reason" >/dev/null
     printf 'Issue #%s を「🛑 辞めた」にしてcloseしました\n' "$issue_number"
