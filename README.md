@@ -106,10 +106,25 @@ Obsidian で使う場合は、このフォルダを vault として開くだけ�
 | `💰 購入済み` | 買ったが読んでいない | **手でラベルを変更** |
 | `📚 積読` | 買って放置している | **手でラベルを変更** |
 | `📖 読書中` | 読んでいる | `new-book.sh --issue` が自動で付ける |
-| `✅ 読了` | 読み終えた（Issueはclose） | `finish-book.sh` が自動で付ける |
-| `🛑 辞めた` | やめた（Issueはclose） | `drop-book.sh` が自動で付ける |
+| `✅ 読了` | 読み終えた（Issueはclose） | `finish-book.sh` / **GitHubで「完了」としてclose** |
+| `🛑 辞めた` | やめた（Issueはclose） | `drop-book.sh` / **GitHubで「未完了」としてclose** |
 
 買ったときだけGitHubでラベルを `💰 購入済み` に変えてください。それ以外はスクリプトが自動で更新します。
+
+**GitHubで直接Issueを閉じたときも、状態ラベルは自動で付け替わります。**
+スマホのGitHubアプリから閉じてもラベルが置き去りにならないので、`status.sh` の集計がずれません。
+
+| 閉じ方 | 付くラベル |
+| --- | --- |
+| 「Close as completed」（完了） | `✅ 読了` |
+| 「Close as not planned」（未完了）/ duplicate | `🛑 辞めた` |
+| リオープン | 閉じる前の状態に戻る（分からなければ `📚 積読`） |
+
+`finish-book.sh` / `drop-book.sh` はラベルを付けてから閉じるので、この自動化に二重で書き換えられることはありません
+（すでに `✅ 読了` か `🛑 辞めた` が付いているIssueには何もしません）。
+
+読書中だった本をGitHubから閉じた場合、**ローカルのノートは `02_reading/` に残ります。**
+手元で `./scripts/finish-book.sh <ノートのパス>` を実行して `03_notes/` へ移してください（Issueは閉じたままで問題ありません）。
 
 **Issueは読了かやめたときまで開いたまま** です。つまり `is:open` のIssue一覧が「いま抱えている本」になります。
 
@@ -278,6 +293,7 @@ HTMLと `My Clippings.txt` の両方に対応しています。
 | --- | --- |
 | `.github/ISSUE_TEMPLATE/want-to-read.yml` | 読みたい本の登録フォーム |
 | `.github/workflows/label-from-form.yml` | フォームで選んだ優先度とジャンルをラベルに反映する |
+| `.github/workflows/status-from-close.yml` | Issueのclose / リオープンを状態ラベルに反映する |
 
 ラベルは4種類です。状態ラベルは常に1つだけ付いている状態がスクリプトによって保たれます。
 
