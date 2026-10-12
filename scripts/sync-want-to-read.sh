@@ -45,7 +45,7 @@ map({
 | sort_by(rank(.prio), .num)
 | .[]
 | [(.prio | .[0:1]), .title, .author, .motive, .want, .created, ("#" + (.num | tostring))]
-| @tsv
+| join("\u001f")
 JQ
 
 rows="$(gh issue list --label want-to-read --state open --limit 200 \
@@ -57,7 +57,8 @@ table="$(printf '%s\n' \
 
 count=0
 if [ -n "$rows" ]; then
-  while IFS=$'\t' read -r prio title author motive want created num; do
+  # 区切りは US(0x1f)。タブは空白文字扱いで空フィールドが詰められてしまうため使わない
+  while IFS=$'\037' read -r prio title author motive want created num; do
     [ -n "$title" ] || continue
     date="$(to_local_date "$created")"
     table="${table}
