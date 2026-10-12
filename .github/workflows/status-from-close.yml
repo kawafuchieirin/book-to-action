@@ -1,0 +1,74 @@
+name: クローズ/リオープンを状態ラベルに反映する
+
+# GitHub上で手でIssueを閉じたときも、状態ラベルを自動で付け替える。
+# スマホからサッと閉じてもラベルが置き去りにならないので、status.sh の集計が合い続ける。
+#
+#   「完了として閉じる」           → ✅ 読了
+#   「未完了（not planned）で閉じる」→ 🛑 辞めた
+#   リオープン                     → 閉じる前の状態に戻す
+#
+# finish-book.sh / drop-book.sh は閉じる前に自分でラベルを付けるので、
+# すでに ✅ 読了 か 🛑 辞めた が付いているIssueには何もしない（上書き防止）。
+
+on:
+  issues:
+    types: [closed, reopened]
+
+permissions:
+  issues: write
+
+jobs:
+  status:
+    if: contains(github.event.issue.labels.*.name, 'want-to-read')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const STATUS = ['📋 読みたい', '💰 購入済み', '📚 積読', '📖 読書中', '✅ 読了', '🛑 辞めた'];
+            // closeに対応する2つ。この2つが付いているIssueはスクリプト経由なので触らない
+            const CLOSED_STATUS = ['✅ 読了', '🛑 辞めた'];
+            // リオープンしたのに閉じる前の状態が分からないときの既定値
+            // （一度読んだ/やめた本は手元にあるので、積読に戻すのがいちばん実態に近い）
+            const REOPEN_FALLBACK = '📚 積読';
+
+            const issue = { owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number };
+            const current = context.payload.issue.labels.map(l => l.name);
+            const action = context.payload.action;
+
+            // 閉じる前の状態ラベルを、ラベルの取り外し履歴から復元する。
+            // 状態の付け替えは「古いラベルを外す → 新しいラベルを付ける」なので、
+            // 最後に外された 読了/辞めた 以外の状態ラベルが、閉じる直前の状態になる
+            const previousStatus = async () => {
+              const events = await github.paginate(github.rest.issues.listEvents, { ...issue, per_page: 100 });
+              const removed = events
+                .filter(e => e.event === 'unlabeled' && e.label
+                          && STATUS.includes(e.label.name) && !CLOSED_STATUS.includes(e.label.name))
+                .pop();
+              return removed?.label.name;
+            };
+
+            let wanted;
+            if (action === 'closed') {
+              const already = current.find(l => CLOSED_STATUS.includes(l));
+              if (already) {
+                core.info(`すでに「${already}」が付いているので何もしません（スクリプト経由のclose）`);
+                return;
+              }
+              // not planned / duplicate は「読み終えていない」close なので やめた 扱い
+              wanted = context.payload.issue.state_reason === 'completed' ? '✅ 読了' : '🛑 辞めた';
+            } else {
+              if (!current.some(l => CLOSED_STATUS.includes(l))) {
+                core.info('読了/辞めた が付いていないので何もしません');
+                return;
+              }
+              wanted = (await previousStatus()) ?? REOPEN_FALLBACK;
+            }
+
+            for (const stale of STATUS.filter(l => l !== wanted && current.includes(l))) {
+              await github.rest.issues.removeLabel({ ...issue, name: stale });
+            }
+            if (!current.includes(wanted)) {
+              await github.rest.issues.addLabels({ ...issue, labels: [wanted] });
+            }
+            core.info(`#${context.issue.number} を「${wanted}」にしました（${action}）`);
