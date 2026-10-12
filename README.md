@@ -44,6 +44,7 @@ Obsidian でも VS Code でもそのまま開けます。
 | `06_reviews/` | 月次振り返り | `YYYY-MM.md` |
 | `templates/` | 各種テンプレート | 読書ノート / アウトプット / 月次振り返り |
 | `scripts/` | 作業を1コマンドにするスクリプト | `new-book.sh` など |
+| `integrations/` | 外部サービス連携 | Kindle購入通知メール → Issue |
 
 ---
 
@@ -163,6 +164,34 @@ Issueから作ると「解決したいこと」が埋まった状態で始めら
 
 理由は必須です。同じ理由で何度もやめていたら、本の選び方を変えるサインになります。
 
+### 3.7 Kindleのハイライトを取り込む
+
+Kindleで線を引きながら読めば、それをそのまま読書メモ表に流し込めます。
+
+```bash
+# まず中身を確認（書き込まない）
+./scripts/import-highlights.sh "02_reading/本のタイトル.md" ~/Downloads/Notebook.html --dry-run
+
+# 取り込む
+./scripts/import-highlights.sh "02_reading/本のタイトル.md" ~/Downloads/Notebook.html
+```
+
+エクスポートの取り方は3つあります（いずれも公式機能）。
+
+| 方法 | 手順 |
+| --- | --- |
+| ブラウザ | [read.amazon.co.jp/notebook](https://read.amazon.co.jp/notebook) で本を選び「エクスポート」 |
+| アプリ | Kindleアプリの「ハイライトをエクスポート」でメール送信 |
+| 端末 | KindleをUSB接続し `documents/My Clippings.txt` をコピー |
+
+HTMLと `My Clippings.txt` の両方に対応しています。
+
+- Kindleの**メモは「自分の反応」の列**に入ります（ハイライトに紐づけて配置）
+- ページ番号がない本は `位置1203` のように位置番号が入ります
+- **同じ引用は飛ばす**ので、読み進めながら何度でも実行できます
+
+取り込んだあとに「自分の反応（→ だから何？）」を埋めてください。引用を集めただけでは行動は変わりません。
+
 ### 4. 行動を管理する
 
 `04_actions/action-tracker.md` に全部の本の行動が集まります。
@@ -199,6 +228,7 @@ Issueから作ると「解決したいこと」が埋まった状態で始めら
 | `./scripts/finish-book.sh <パス>` | `status: done` と `finished` を記入し `03_notes/<年>/` へ移動（git mv 優先）、Issueを `✅ 読了` にしてclose |
 | `./scripts/new-output.sh "タイトル"` | アウトプット用ファイルを作成 |
 | `./scripts/new-review.sh [YYYY-MM]` | 月次振り返りを作成し、その月の読了冊数を表示 |
+| `./scripts/import-highlights.sh <ノート> <エクスポート> [--dry-run]` | Kindleのハイライトを読書メモ表に取り込む |
 
 ---
 
@@ -234,6 +264,25 @@ Issueの本文を編集しても `📖 読書中` が `📋 読みたい` に巻
 
 Issueを使わずローカルだけで運用したい場合は、`.github/` を削除して
 `new-book.sh "タイトル" "ジャンル"` の形だけ使えば従来どおり動きます。
+
+---
+
+## Kindle連携
+
+Kindleには**購入履歴や読書進捗を取得する公式APIがありません**。
+そのため、公式に取り出せるデータだけを使って2つの連携を用意しています。
+
+| 連携 | 使うもの | できること |
+| --- | --- | --- |
+| ハイライト取り込み | Kindleのエクスポート機能 | 読書メモ表が自動で埋まる |
+| 購入の自動検知 | Amazonの注文確認メール | Issueが自動で `💰 購入済み` になる |
+
+購入の自動検知は [integrations/gmail-to-github/](integrations/gmail-to-github/) にGoogle Apps Scriptとして
+用意しています（サーバー不要・無料）。メール本文の商品ページURLからASINを取り出し、
+同じASINを含むIssueを突き合わせます。**登録していない本を買った場合はIssueが自動で作られる**ので、
+買ったのに登録を忘れた本が積読のまま消えません。
+
+非公式に Kindle の内部APIを叩くライブラリも存在しますが、規約リスクがあり壊れやすいため使っていません。
 
 ---
 

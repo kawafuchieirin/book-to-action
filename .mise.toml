@@ -1,0 +1,4 @@
+# ハイライト取り込みスクリプト（scripts/lib/import_highlights.py）で使用。
+# 標準ライブラリのみで動くので、システムのpython3があればmiseは必須ではない。
+[tools]
+python = "3.15"
