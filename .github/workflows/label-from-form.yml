@@ -20,6 +20,10 @@ jobs:
           script: |
             // 見出しごとに、排他的に付けたいラベルの一覧を持つ
             const GROUPS = [
+              // 状態はフォームで「初期値」を決めるだけ。以降はラベルが正なので、
+              // 本文を編集したときに読書中などを「読みたい」へ巻き戻さないよう opened 限定にする
+              { heading: 'いまの状態', onlyOnOpen: true,
+                labels: ['📋 読みたい', '💰 購入済み', '📚 積読', '📖 読書中', '✅ 読了', '🛑 辞めた'] },
               { heading: '優先度', labels: ['🔥 今すぐ', '🌱 そのうち', '🧊 一応メモ'] },
               { heading: 'ジャンル', labels: [
                 '💻 技術・エンジニアリング', '☁️ インフラ・クラウド', '📊 ビジネス・マネジメント',
@@ -38,7 +42,8 @@ jobs:
               return section.split('\n').map(l => l.trim()).find(l => l && l !== '_No response_');
             };
 
-            for (const { heading, labels } of GROUPS) {
+            for (const { heading, labels, onlyOnOpen } of GROUPS) {
+              if (onlyOnOpen && context.payload.action !== 'opened') continue;
               const selected = selectedUnder(heading);
               // 絵文字は UTF-16 で2単位。先頭の絵文字だけで照合し、選択肢の文言差を許容する
               const wanted = labels.find(label => selected && selected.startsWith(label.slice(0, 2)));

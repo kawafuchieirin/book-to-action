@@ -2,7 +2,7 @@
 # 読み始める本のノートを 02_reading/ に作成する
 # 使い方:
 #   ./scripts/new-book.sh "タイトル" "ジャンル"  手で指定する
-#   ./scripts/new-book.sh --issue <Issue番号>     読みたい本Issueから作る（Issueはcloseされる）
+#   ./scripts/new-book.sh --issue <Issue番号>     読みたい本Issueから作る（Issueは「📖 読書中」になる）
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
@@ -83,9 +83,11 @@ if [ -n "$issue_number" ]; then
   case "$book_url" in
     http://*|https://*) update_frontmatter "$dest" "url" "\"$book_url\"" ;;
   esac
-  gh issue close "$issue_number" \
-    --comment "読み始めました。読書ノート: \`${dest#$REPO_ROOT/}\`" >/dev/null
-  printf 'Issue #%s をcloseしました\n' "$issue_number"
+  # Issueは読了・辞めたときまで開いたままにして、ラベルで状態を管理する
+  set_status_label "$issue_number" "📖 読書中" || true
+  gh issue comment "$issue_number" \
+    --body "読み始めました。読書ノート: \`${dest#$REPO_ROOT/}\`" >/dev/null
+  printf 'Issue #%s を「📖 読書中」にしました\n' "$issue_number"
 fi
 
 printf '読書ノートを作成しました: %s\n' "${dest#$REPO_ROOT/}"
@@ -94,4 +96,5 @@ cat <<'NEXT'
 次にやること:
   1. 「読む前に：なぜ読むのか」を5分で埋める（ここが空だと読んで終わりになる）
   2. 読み終えたら ./scripts/finish-book.sh <ノートのパス>
+  3. 途中でやめるなら ./scripts/drop-book.sh <ノートのパス> "理由"
 NEXT

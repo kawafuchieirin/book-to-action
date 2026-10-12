@@ -138,3 +138,47 @@ extract_url() {
   [ -n "$url" ] || url="$(printf '%s' "$text" | grep -oE 'https?://[^[:space:])]+' | head -1)"
   printf '%s' "$url"
 }
+
+# --- ステータス管理 -----------------------------------------------------
+
+# Issueに付けるステータスラベル（常にこの中の1つだけが付いている状態にする）
+STATUS_LABELS="📋 読みたい
+💰 購入済み
+📚 積読
+📖 読書中
+✅ 読了
+🛑 辞めた"
+
+# Issueのステータスラベルを1つだけに差し替える
+# 使い方: set_status_label <Issue番号> <ラベル名>
+set_status_label() {
+  local num="$1" wanted="$2" current label
+  current="$(gh issue view "$num" --json labels --jq '.labels[].name')"
+
+  local args=()
+  while IFS= read -r label; do
+    [ -n "$label" ] || continue
+    if [ "$label" != "$wanted" ] && printf '%s\n' "$current" | grep -Fxq "$label"; then
+      args+=(--remove-label "$label")
+    fi
+  done <<EOF
+$STATUS_LABELS
+EOF
+
+  if ! printf '%s\n' "$current" | grep -Fxq "$wanted"; then
+    args+=(--add-label "$wanted")
+  fi
+
+  if [ "${#args[@]}" -gt 0 ]; then
+    gh issue edit "$num" "${args[@]}" >/dev/null
+    return 0
+  fi
+  return 1
+}
+
+# ノートのfrontmatterから連携しているIssue番号を取り出す（例: "#3" → 3）
+note_issue_number() {
+  local value
+  value="$(read_frontmatter "$1" issue)"
+  printf '%s' "${value#\#}"
+}

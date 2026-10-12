@@ -17,9 +17,11 @@
 ## リスト
 
 <!-- BEGIN:issues -->
-| 優先度 | タイトル | ジャンル | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |
-| --- | --- | --- | --- | --- | --- | --- |
-| 🔥 | [［作って学ぶ］ブラウザのしくみ──HTTP、HTML、CSS、JavaScriptの裏側 WEB+DB PRESS plus](https://www.amazon.co.jp/dp/B0DKDHR8BL) | 💻 技術・エンジニアリング | どのようにブラウザが動くのかを理解したい。 仕事で活かせそう | 「URLを入れてから画面が出るまで」を、図を書きながら同僚に5分で説明できるようになりたい （判定：調べながらでなく、何も見ずにホワイトボードに書ける） | 2026-10-12 | #3 |
+| 優先度 | 状態 | タイトル | ジャンル | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 🔥 | 📋 読みたい | [［作って学ぶ］ブラウザのしくみ──HTTP、HTML、CSS、JavaScriptの裏側 WEB+DB PRESS plus](https://www.amazon.co.jp/dp/B0DKDHR8BL) | 💻 技術・エンジニアリング | どのようにブラウザが動くのかを理解したい。 仕事で活かせそう | 「URLを入れてから画面が出るまで」を、図を書きながら同僚に5分で説明できるようになりたい （判定：調べながらでなく、何も見ずにホワイトボードに書ける） | 2026-10-12 | #3 |
+| 🔥 | 📋 読みたい | [実践理解！Webアプリケーション セキュリティ［固定版］](https://www.amazon.co.jp/実践理解！Webアプリケーション-セキュリティ［固定版］-Malcolm-McDonald-ebook/dp/B0G4QRX378/ref=books_amz-books_mobile_mfs_wsixnhcumxnet_0?_encoding=UTF8&pd_rd_w=C82I2&content-id=amzn1.sym.0280e418-26c5-47a6-98a4-6f59f619f818&pf_rd_p=0280e418-26c5-47a6-98a4-6f59f619f818&pf_rd_r=0Y86AC2NQCZGTB452G0Y&pd_rd_wg=dwj0V&pd_rd_r=f895e808-36b1-458d-b69b-516185843d89) | 💻 技術・エンジニアリング | 昨今のセキュリティーのインシデントが多いので体系的に学びたい | セキュリティーの基礎知識 | 2026-10-12 | #9 |
+| 🔥 | 📋 読みたい | [コードレビューの教科書――なんとなく承認から抜け出すための観点と判断基準](https://www.amazon.co.jp/コードレビューの教科書――なんとなく承認から抜け出すための観点と判断基準-佐藤-晶彦-ebook/dp/B0HD5XSC2N/ref=books_amz-books_mobile_mfs_cp_0?_encoding=UTF8&pd_rd_w=I2YMa&content-id=amzn1.sym.bffaaa92-1e0d-4bdb-bf1d-b2a0bf171d2f&pf_rd_p=bffaaa92-1e0d-4bdb-bf1d-b2a0bf171d2f&pf_rd_r=QJQE4949K8R8PDYWYPA7&pd_rd_wg=mKEdO&pd_rd_r=23152307-96a5-40f8-934d-b9c58f07d37c) | 💻 技術・エンジニアリング | コードレビューをなんとなくで行っているので体系的に学びたい | コードレビューの視点 | 2026-10-12 | #10 |
 <!-- END:issues -->
 
 ---

@@ -32,6 +32,19 @@ move_file "$src" "$dest"
 title="$(read_frontmatter "$dest" title)"
 printf '読了にしました: %s（%s）\n' "${title:-$(basename "$dest" .md)}" "$finished"
 printf '移動先: %s\n' "${dest#$REPO_ROOT/}"
+
+# 連携しているIssueがあれば「✅ 読了」にしてcloseする
+issue_number="$(note_issue_number "$dest")"
+if [ -n "$issue_number" ]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    set_status_label "$issue_number" "✅ 読了" || true
+    gh issue close "$issue_number" \
+      --comment "読了しました（$finished）。読書ノート: \`${dest#$REPO_ROOT/}\`" >/dev/null
+    printf 'Issue #%s を「✅ 読了」にしてcloseしました\n' "$issue_number"
+  else
+    printf '※ ghが使えないため Issue #%s は手で閉じてください\n' "$issue_number"
+  fi
+fi
 cat <<'NEXT'
 
 次にやること:

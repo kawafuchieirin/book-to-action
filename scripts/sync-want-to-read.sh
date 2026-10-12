@@ -27,6 +27,8 @@ def sect($h):
       | map(select(. != "")) | join(" ") | clean
     end;
 def prio: (.labels | map(.name) | map(select(test("^(🔥|🌱|🧊)"))) | first) // "❓ 未設定";
+# ステータスはラベルが正。未設定のopen Issueは「読みたい」として扱う
+def status: (.labels | map(.name) | map(select(test("^(📋|💰|📚|📖|✅|🛑)"))) | first) // "📋 読みたい";
 # スマホから貼ると [ラベル](URL) のマークダウン形式になるため、括弧内のURLを優先して取り出す
 def extract_url:
   ([scan("\\]\\((https?://[^)\\s]+)\\)")] | map(.[0]) | first)
@@ -36,8 +38,11 @@ def rank($p): if ($p | startswith("🔥")) then 0
               elif ($p | startswith("🌱")) then 1
               elif ($p | startswith("🧊")) then 2
               else 3 end;
-map({
+# 読書中の本は 02_reading のノートが本体なので、読みたい本の一覧には出さない
+map(select(status | startswith("📖") | not))
+| map({
   prio:   prio,
+  status: status,
   title:  (.title | sub("^📚\\s*"; "") | cell),
   genre:  ((sect("ジャンル") | cell) as $g
            | (sect("ジャンル（その他を選んだ場合）") | cell) as $other
@@ -51,7 +56,7 @@ map({
 | map(.title = (if (.url | test("^https?://")) then "[" + .title + "](" + .url + ")" else .title end))
 | sort_by(rank(.prio), .num)
 | .[]
-| [(.prio | .[0:1]), .title, .genre, .motive, .want, .created, ("#" + (.num | tostring))]
+| [(.prio | .[0:1]), .status, .title, .genre, .motive, .want, .created, ("#" + (.num | tostring))]
 | join("\u001f")
 JQ
 
@@ -59,17 +64,17 @@ rows="$(gh issue list --label want-to-read --state open --limit 200 \
           --json number,title,body,labels,createdAt --jq "$JQ_PROG")"
 
 table="$(printf '%s\n' \
-  '| 優先度 | タイトル | ジャンル | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |' \
-  '| --- | --- | --- | --- | --- | --- | --- |')"
+  '| 優先度 | 状態 | タイトル | ジャンル | きっかけ・解決したいこと | 手に入れたいもの | 追加日 | Issue |' \
+  '| --- | --- | --- | --- | --- | --- | --- | --- |')"
 
 count=0
 if [ -n "$rows" ]; then
   # 区切りは US(0x1f)。タブは空白文字扱いで空フィールドが詰められてしまうため使わない
-  while IFS=$'\037' read -r prio title genre motive want created num; do
+  while IFS=$'\037' read -r prio status title genre motive want created num; do
     [ -n "$title" ] || continue
     date="$(to_local_date "$created")"
     table="${table}
-| ${prio} | ${title} | ${genre} | ${motive} | ${want} | ${date} | ${num} |"
+| ${prio} | ${status} | ${title} | ${genre} | ${motive} | ${want} | ${date} | ${num} |"
     count=$((count + 1))
   done <<EOF
 $rows
@@ -78,7 +83,7 @@ fi
 
 if [ "$count" -eq 0 ]; then
   table="${table}
-| | _オープンな読みたい本Issueはありません_ | | | | | |"
+| | | _未読の本はありません_ | | | | | |"
 fi
 
 # 表は複数行なので awk -v では渡せない（改行を含む値はエラーになる）。一時ファイル経由で挿入する
@@ -99,7 +104,7 @@ awk -v table_file="$table_file" '
 mv "$tmp" "$LIST_FILE"
 rm -f "$table_file"
 
-printf '%s を更新しました（読みたい本: %d 冊）\n' "${LIST_FILE#$REPO_ROOT/}" "$count"
+printf '%s を更新しました（未読の本: %d 冊）\n' "${LIST_FILE#$REPO_ROOT/}" "$count"
 cat <<'NEXT'
 
 次にやること:

@@ -37,6 +37,20 @@ body:
     validations:
       required: false
 
+  - type: dropdown
+    id: status
+    attributes:
+      label: いまの状態
+      description: 登録時点の状態。あとからラベルで変更できます
+      options:
+        - 📋 読みたい
+        - 💰 購入済み
+        - 📚 積読
+        - 📖 読書中
+      default: 0
+    validations:
+      required: true
+
   - type: input
     id: url
     attributes:
