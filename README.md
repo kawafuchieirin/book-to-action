@@ -67,7 +67,7 @@ Obsidian で使う場合は、このフォルダを vault として開くだけ�
 | フォームの項目 | 内容 |
 | --- | --- |
 | タイトル | `📚 ` のあとに本のタイトル |
-| 著者 | 任意 |
+| ジャンル | **必須。** プルダウンから選ぶ。該当なしは「✏️ その他」→ 次の欄に自由入力 |
 | 購入リンク | 任意。Amazon・楽天・出版社ページなど |
 | きっかけ・解決したいこと | **必須。** なぜ今この本が気になったか |
 | 手に入れたいもの | **必須。** 読み終えたときに何ができるようになっていたいか |
@@ -95,7 +95,7 @@ Obsidian で使う場合は、このフォルダを vault として開くだけ�
 
 ```bash
 ./scripts/new-book.sh --issue 1
-# → Issue #1 からタイトル・著者・きっかけを取り込んでノートを作り、Issueをcloseする
+# → Issue #1 からタイトル・ジャンル・きっかけを取り込んでノートを作り、Issueをcloseする
 
 ./scripts/new-book.sh "イシューからはじめよ" "安宅和人"
 # → Issueを使わず手で作る場合
@@ -152,7 +152,7 @@ Issueから作ると「解決したいこと」が埋まった状態で始めら
 | --- | --- |
 | `./scripts/sync-want-to-read.sh` | オープンなIssueから `want-to-read.md` の表を再生成 |
 | `./scripts/new-book.sh --issue <番号>` | Issueからノートを作成し、そのIssueをclose |
-| `./scripts/new-book.sh "タイトル" "著者"` | テンプレートから読書中ノートを作成（Issueなし） |
+| `./scripts/new-book.sh "タイトル" "ジャンル"` | テンプレートから読書中ノートを作成（Issueなし） |
 | `./scripts/finish-book.sh <パス>` | `status: done` と `finished` を記入し `03_notes/<年>/` へ移動（git mv 優先）、次の作業を表示 |
 | `./scripts/new-output.sh "タイトル"` | アウトプット用ファイルを作成 |
 | `./scripts/new-review.sh [YYYY-MM]` | 月次振り返りを作成し、その月の読了冊数を表示 |
@@ -164,13 +164,28 @@ Issueから作ると「解決したいこと」が埋まった状態で始めら
 | ファイル | 役割 |
 | --- | --- |
 | `.github/ISSUE_TEMPLATE/want-to-read.yml` | 読みたい本の登録フォーム |
-| `.github/workflows/label-priority.yml` | フォームで選んだ優先度をラベルに反映する |
+| `.github/workflows/label-from-form.yml` | フォームで選んだ優先度とジャンルをラベルに反映する |
 
-ラベルは `want-to-read` / `🔥 今すぐ` / `🌱 そのうち` / `🧊 一応メモ` の4つです。
-優先度がラベルになっているので、Issue一覧で `label:"🔥 今すぐ"` で絞り込めます。
+ラベルは3種類です。
+
+| 種類 | ラベル |
+| --- | --- |
+| 分類 | `want-to-read` |
+| 優先度 | `🔥 今すぐ` / `🌱 そのうち` / `🧊 一応メモ` |
+| ジャンル | `💻 技術・エンジニアリング` / `☁️ インフラ・クラウド` / `📊 ビジネス・マネジメント` / `🧠 思考法・問題解決` / `🎨 デザイン・UX` / `🔬 教養・サイエンス` / `📕 小説・エッセイ` / `✏️ その他` |
+
+ラベルになっているので、Issue一覧で `label:"🔥 今すぐ" label:"💻 技術・エンジニアリング"` のように絞り込めます。
+
+**ジャンルを増やしたいとき** は2箇所を直します。
+
+1. `.github/ISSUE_TEMPLATE/want-to-read.yml` の `options` に追加
+2. `.github/workflows/label-from-form.yml` の `GROUPS` のジャンル配列に、同じ文字列を追加
+3. `gh label create "🍳 料理" --color C5DEF5 --description ジャンル` でラベルを作る
+
+「✏️ その他」で登録したジャンルが増えてきたら、正式な選択肢に昇格させるのが運用しやすいです。
 
 Issueを使わずローカルだけで運用したい場合は、`.github/` を削除して
-`new-book.sh "タイトル" "著者"` の形だけ使えば従来どおり動きます。
+`new-book.sh "タイトル" "ジャンル"` の形だけ使えば従来どおり動きます。
 
 ---
 
